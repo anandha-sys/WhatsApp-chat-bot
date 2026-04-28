@@ -1,31 +1,54 @@
-const express = require("express");
+const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@whiskeysockets/baileys');
+const { Boom } = require('@hapi/boom');
+const pino = require('pino');
+const express = require('express');
+
+// Set up a dummy web server for Render
 const app = express();
+const port = process.env.PORT || 3000;
 
-app.use(express.urlencoded({ extended: false }));
+app.get('/', (req, res) => res.send('WhatsApp Bot is running!'));
+app.listen(port, () => console.log(`Web server listening on port ${port}`));
 
-// WhatsApp webhook
-app.post("/whatsapp", (req, res) => {
-  const msg = req.body.Body;
+async function connectToWhatsApp() {
+    // This saves your session so you don't scan the QR code constantly
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
 
-  let reply = "🤖 Bot is working!";
+    const sock = makeWASocket({
+        auth: state,
+        printQRInTerminal: true, // No need for 'qrcode-terminal', Baileys does this natively now
+        logger: pino({ level: 'silent' })
+    });
 
-  if (msg && msg.toLowerCase().includes("hi")) {
-    reply = "Hello 👋 Conan!";
-  }
+    // Save credentials whenever they update
+    sock.ev.on('creds.update', saveCreds);
 
-  if (msg && msg.toLowerCase().includes("help")) {
-    reply = "Type anything, I will reply 😎";
-  }
+    sock.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect } = update;
+        
+        if (connection === 'close') {
+            const shouldReconnect = (lastDisconnect.error instanceof Boom)
+                ? lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut
+                : true;
+            console.log(`Disconnected. Reconnecting: ${shouldReconnect}`);
+            if (shouldReconnect) connectToWhatsApp();
+        } else if (connection === 'open') {
+            console.log('✅ Logged in to WhatsApp!');
+        }
+    });
 
-  res.set("Content-Type", "text/xml");
-  res.send(`<Response><Message>${reply}</Message></Response>`);
-});
+    sock.ev.on('messages.upsert', async ({ messages }) => {
+        const msg = messages[0];
+        
+        // Ignore messages from yourself or empty messages
+        if (!msg.message || msg.key.fromMe) return;
 
-// Test route
-app.get("/", (req, res) => {
-  res.send("Server running 🚀");
-});
+        const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
 
-// IMPORTANT for Render
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server started on " + PORT));
+        if (text && text.toLowerCase().includes('hi')) {
+            await sock.sendMessage(msg.key.remoteJid, { text: 'Hello 👋' });
+        }
+    });
+}
+
+connectToWhatsApp();
