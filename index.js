@@ -3,7 +3,7 @@ const { Boom } = require('@hapi/boom');
 const pino = require('pino');
 const express = require('express');
 
-// Set up a dummy web server for Render
+// Set up a dummy web server for Render to prevent crashes
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -16,8 +16,8 @@ async function connectToWhatsApp() {
 
     const sock = makeWASocket({
         auth: state,
-        printQRInTerminal: true, // No need for 'qrcode-terminal', Baileys does this natively now
-        logger: pino({ level: 'silent' })
+        printQRInTerminal: true, 
+        logger: pino({ level: 'info' }) // 'info' ensures you see the QR code in logs
     });
 
     // Save credentials whenever they update
