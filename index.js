@@ -6,8 +6,8 @@ const TelegramBot = require('node-telegram-bot-api');
 const QRCode = require('qrcode'); // QR ഇമേജ് ഉണ്ടാക്കാൻ
 
 // --- CONFIGURATION ---
-const token = 'YOUR_TELEGRAM_BOT_TOKEN'; // ടെലിഗ്രാം ബോട്ട് ടോക്കൺ ഇവിടെ നൽകുക
-const chatId = 'YOUR_CHAT_ID';          // നിങ്ങളുടെ ടെലിഗ്രാം ID ഇവിടെ നൽകുക
+const token = '8701301869:AAGiFFPQOk-gxZfIm5Irnfv57bqkMlLKcyA'; // ടെലിഗ്രാം ബോട്ട് ടോക്കൺ ഇവിടെ നൽകുക
+const chatId = '8142078717';          // നിങ്ങളുടെ ടെലിഗ്രാം ID ഇവിടെ നൽകുക
 // ---------------------
 
 const bot = new TelegramBot(token, { polling: false });
